@@ -5,10 +5,11 @@ import makeWASocket, {
 import P from "pino";
 import qrcode from "qrcode-terminal";
 import menuText from "./handlers/menu.js";
-
+import { printGroupCache, initGroupCache } from "./core/grouprequired.js";
 const menu = menuText;
 
 async function startBot() {
+  
   const { state, saveCreds } = await useMultiFileAuthState("./session");
   const sock = makeWASocket({
     logger: P({ level: "silent" }),
@@ -18,7 +19,7 @@ async function startBot() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", (update) => {
+  sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
     if (qr) {
@@ -42,11 +43,10 @@ async function startBot() {
       console.log("🔁 Reconnecting...");
       setTimeout(startBot, 15000);
 
-      if (connection === "open") {
-        console.log("✅ Bot connected");
-      }
     }
     if (connection === "open") {
+      await initGroupCache(sock);
+       printGroupCache();
       console.log("bot is connected");
     }
   });
@@ -80,7 +80,7 @@ async function startBot() {
       if (text.startsWith(".kick")) {
         let target;
         // mention
-        target =  
+        target =
           msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
 
         // reply
