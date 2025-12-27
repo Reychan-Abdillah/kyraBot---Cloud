@@ -63,8 +63,12 @@ async function startBot() {
         "";
       const senderId = msg.key.participant || msg.key.remoteJid;
       const from = msg.key.remoteJid;
-
-      switch (text) {
+      const rawText =
+        msg.message.conversation ||
+        msg.message?.extendedTextMessage?.text ||
+        "";
+      const [command, ...args] = rawText.split(" ");
+      switch (command) {
         case ".menu":
           sock.sendMessage(from, {
             text: menu,
@@ -95,7 +99,8 @@ async function startBot() {
 
           //phone number
           if (!target) {
-            const cleaned = text.split(" ")[1]?.replace(/[^0-9]/g, "");
+            const argsText = rawText.split(" ").slice(1).join(""); // gabungkan semua argumen setelah .kick
+            const cleaned = argsText.replace(/[^0-9]/g, "");
             if (cleaned) target = cleaned + "@s.whatsapp.net";
           }
 
