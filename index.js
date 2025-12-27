@@ -57,11 +57,10 @@ async function startBot() {
   sock.ev.on("messages.upsert", async (m) => {
     for (const msg of m.messages) {
       if (!msg.message) continue;
-      const text =
-        msg.message.conversation ||
-        msg.message?.extendedTextMessage?.text ||
-        "";
       const senderId = msg.key.participant || msg.key.remoteJid;
+      console.log("sender adalah TEST TEST : ", senderId)
+      console.log('DATA NOMOR BOT')
+      console.dir(sock.user, { depth: null, colors: true });
       const from = msg.key.remoteJid;
       const rawText =
         msg.message.conversation ||

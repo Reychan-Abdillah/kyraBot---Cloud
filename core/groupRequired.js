@@ -11,8 +11,13 @@ console.log("==============");
     const participants = meta.participants || [];
     const admins = new Set(
       participants.filter((p) => p.admin).map((p) => p.id)
-    );``
-    groupCache.set(id, { admins, botJoined: true });
+    );
+    const botId = sock.user.lid
+    const botAdmins = botId.split(":")[0] + botId.slice(botId.indexOf("@"));
+    console.log("BOT ADMIN", botAdmins)
+    groupCache.set(id, { admins, botJoined: true});
+
+    console.log("ADMIN ADALAH : ", admins)
   }
 }
 
