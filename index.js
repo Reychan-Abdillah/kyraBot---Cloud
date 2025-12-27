@@ -5,11 +5,15 @@ import makeWASocket, {
 import P from "pino";
 import qrcode from "qrcode-terminal";
 import menuText from "./handlers/menu.js";
-import { printGroupCache, initGroupCache } from "./core/grouprequired.js";
+import {
+  initGroupCache,
+  setupGroupListeners,
+  groupCache,
+} from "./core/grouprequired.js";
+import { handleKickCommand } from "./core/command.js";
 const menu = menuText;
 
 async function startBot() {
-  
   const { state, saveCreds } = await useMultiFileAuthState("./session");
   const sock = makeWASocket({
     logger: P({ level: "silent" }),
@@ -42,11 +46,10 @@ async function startBot() {
 
       console.log("🔁 Reconnecting...");
       setTimeout(startBot, 15000);
-
     }
     if (connection === "open") {
       await initGroupCache(sock);
-       printGroupCache();
+      setupGroupListeners(sock);
       console.log("bot is connected");
     }
   });
@@ -58,63 +61,60 @@ async function startBot() {
         msg.message.conversation ||
         msg.message?.extendedTextMessage?.text ||
         "";
-      const sender = msg.pushName || "user";
+      const senderId = msg.key.participant || msg.key.remoteJid;
       const from = msg.key.remoteJid;
-      if (text === ".menu") {
-        sock.sendMessage(from, {
-          text: menu,
-          quoted: msg,
-        });
-      }
 
-      if (text === ".ping") {
-        const start = Date.now();
-        const latencySec = ((Date.now() - start) / 1000).toFixed(3);
-
-        sock.sendMessage(from, {
-          text: "_Response_ : `" + latencySec + "s`",
-          quoted: msg,
-        });
-      }
-
-      if (text.startsWith(".kick")) {
-        let target;
-        // mention
-        target =
-          msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-
-        // reply
-        if (!target)
-          target = msg.message?.extendedTextMessage?.contextInfo?.participant;
-
-        //phone number
-        if (!target) {
-          const cleaned = text.split(" ")[1]?.replace(/[^0-9]/g, "");
-          if (cleaned) target = cleaned + "@s.whatsapp.net";
-        }
-
-        // information
-        if (!target)
-          return sock.sendMessage(from, {
-            text: "Reply/mention/nomor target dulu!",
-          });
-
-        sock.groupParticipantsUpdate(from, [target], "remove").catch((err) => {
+      switch (text) {
+        case ".menu":
           sock.sendMessage(from, {
-            text: `Gagal kick: ${err.message}`,
+            text: menu,
+            quoted: msg,
           });
-        });
+          break;
+        case ".ping":
+          const start = Date.now();
+          const latencySec = ((Date.now() - start) / 1000).toFixed(3);
+
+          sock.sendMessage(from, {
+            text: "_Response_ : `" + latencySec + "s`",
+            quoted: msg,
+          });
+          break;
+
+        case ".kick":
+          const valid = await handleKickCommand(sock, from, senderId, msg);
+          if (!valid) return;
+          let target;
+          // mention
+          target =
+            msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+
+          // reply
+          if (!target)
+            target = msg.message?.extendedTextMessage?.contextInfo?.participant;
+
+          //phone number
+          if (!target) {
+            const cleaned = text.split(" ")[1]?.replace(/[^0-9]/g, "");
+            if (cleaned) target = cleaned + "@s.whatsapp.net";
+          }
+
+          // information
+          if (!target)
+            return sock.sendMessage(from, {
+              text: "Reply/mention/nomor target dulu!",
+            });
+
+          sock
+            .groupParticipantsUpdate(from, [target], "remove")
+            .catch((err) => {
+              sock.sendMessage(from, {
+                text: `Gagal kick: ${err.message}`,
+              });
+            });
       }
     }
   });
 }
 
 startBot();
-
-// ⚡ Optimasi tambahan biasanya cuma bisa lewat:
-
-// Server / koneksi internet lebih cepat → latency WA ke server tidak bisa dikurangi di kode
-
-// Cluster / multiple bot → kalau bot menangani grup sangat banyak → skala horizontal
-
-// Batasi pesan masuk per tick → tapi lo udah pakai messages[0] → optimal
