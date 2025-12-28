@@ -48,6 +48,9 @@ export async function handleKickCommand(sock, from, senderId, targetId, msg) {
             sock.sendMessage(from, { text: MSG.CANNOT_KICK_ADMIN }, { quoted: msg });
             return false;
         }
+
+        // all checks passed
+        return true;
     } catch (err) {
         console.error(err);
         sock.sendMessage(from, { text: `Error_message ${err}` }, { quoted: msg });
