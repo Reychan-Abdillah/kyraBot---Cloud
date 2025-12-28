@@ -48,4 +48,4 @@ const menuText = `━━━─[ 🤖 Bot-Guard ]─━━━
 
 _© 2025 Bot-Guard_`;
 
-export default menuText
+export default menuText;
