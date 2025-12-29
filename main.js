@@ -167,6 +167,33 @@ async function startBot() {
                         sock.sendMessage(from, { text: `Gagal kick: ${err.message}` }, { quoted: msg });
                     });
                     break;
+
+                case ".resetwarn":
+                    let targetresetId;
+                    // mention
+                    targetresetId = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+                    // reply
+                    if (!targetresetId) targetresetId = msg.message?.extendedTextMessage?.contextInfo?.participant;
+                    // phone number
+                    if (!targetresetId) {
+                        const argsText = rawText.split(" ").slice(1).join("");
+                        const cleaned = argsText.replace(/[^0-9]/g, "");
+                        if (cleaned) targetresetId = cleaned + "@s.whatsapp.net";
+                    }
+                    console.log("Masuuk");
+                    resetWarnings(targetresetId);
+                    const warningAfterReset = antilinkWarningsMap.get(targetresetId) || 0;
+
+                    sock.sendMessage(
+                        from,
+                        {
+                            text: `✅ *BERHASIL*\n @${
+                                targetresetId.split("@")[0]
+                            } Peringatan telah direset [${warningAfterReset}/3`,
+                            mentions: [targetresetId],
+                        },
+                        { quoted: msg }
+                    );
             }
         }
     });
